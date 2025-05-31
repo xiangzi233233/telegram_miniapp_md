@@ -403,6 +403,15 @@
      * Note: all requests to backend are disabled in this demo, you should use your own backend
      */
 
+    // 检查是否在Telegram Web App中运行
+    if (window.Telegram && window.Telegram.WebApp) {
+        const tgData = window.Telegram.WebApp.initData;
+        const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+        
+        console.log('Telegram用户数据:', tgUser);
+    }
+
+
     const DemoApp = {
         initData      : Telegram.WebApp.initData || '',
         initDataUnsafe: Telegram.WebApp.initDataUnsafe || {},
