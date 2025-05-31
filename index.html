@@ -15,8 +15,8 @@
   </body>
 
   <script>
-
-    document.getElementById('initData').innerHTML = window.Telegram.WebApp.initData
+    const params = new URLSearchParams(window.Telegram.WebApp.initData);
+    document.getElementById('initData').innerHTML = params
     document.getElementById('h1').innerHTML = getOrderNo()
     // 从URL获取orderNo参数
     function getOrderNo() {
