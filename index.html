@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Mini App with Parameters</title>
+    <title>极验验证</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://static.geetest.com/v4/gt4.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -16,158 +17,144 @@
         .container {
             max-width: 600px;
             margin: 0 auto;
+            text-align: center;
         }
-        .param-card {
-            background-color: var(--tg-theme-secondary-bg-color, #f3f3f3);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+        #geetest-container {
+            margin: 20px 0;
         }
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>参数接收演示</h1>
+        <h1>安全验证</h1>
+        <p>请完成下方验证以继续</p>
         
-        <div class="param-card">
-            <h3>URL参数</h3>
-            <div id="url-params"></div>
-        </div>
-        
-        <div class="param-card">
-            <h3>Telegram WebApp 数据</h3>
-            <div id="webapp-data"></div>
-        </div>
-        
-        <div class="param-card">
-            <h3>初始化数据验证</h3>
-            <div id="init-data-result"></div>
-        </div>
+        <div id="geetest-container"></div>
+        <div id="status-message" class="status hidden"></div>
     </div>
 
     <script>
-        // 1. 获取URL参数
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            const result = {};
-            for (const [key, value] of params.entries()) {
-                if (key !== 'initData') {
-                    result[key] = value;
-                }
-            }
-            return result;
+        // 初始化Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // 从URL获取参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id') || tg.initDataUnsafe.user?.id;
+        const initData = urlParams.get('tgWebAppData') || tg.initData;
+        
+        // 初始化极验验证码
+        function initGeetest() {
+            // 这里应该先请求你的Java后端获取极验配置
+            // 以下是模拟流程，实际需要对接你的后端API
+            fetch('https://your-java-backend.com/api/geetest/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    clientType: 'telegram_webapp'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                initGeetestWithConfig(data);
+            })
+            .catch(error => {
+                showStatus('获取验证配置失败: ' + error.message, 'error');
+            });
         }
         
-        // 2. 显示Telegram WebApp数据
-        function displayWebAppData() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = Telegram.WebApp;
-                const data = {
-                    initData: tg.initData,
-                    initDataUnsafe: tg.initDataUnsafe,
-                    themeParams: tg.themeParams,
-                    platform: tg.platform,
-                    version: tg.version
-                };
-                document.getElementById('webapp-data').innerHTML = 
-                    `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-            }
-        }
-        
-        // 3. 验证初始化数据
-        async function validateInitData() {
-            const params = new URLSearchParams(window.location.search);
-            const initDataStr = params.get('initData');
-            
-            if (!initDataStr) {
-                document.getElementById('init-data-result').innerHTML = 
-                    '<p>没有找到初始化数据</p>';
-                return;
-            }
-            
-            try {
-                const initData = new URLSearchParams(initDataStr);
-                const hash = initData.get('hash');
+        // 使用配置初始化极验
+        function initGeetestWithConfig(config) {
+            initGeetest4({
+                captchaId: config.captchaId,
+                product: 'bind',
+                language: 'zh-cn',
+                riskType: config.riskType,
+                hideBar: ['close']
+            }, function(captchaObj) {
+                captchaObj.appendTo('#geetest-container');
                 
-                // 准备验证数据
-                const dataToCheck = [];
-                initData.forEach((val, key) => {
-                    if (key !== 'hash') {
-                        dataToCheck.push(`${key}=${val}`);
-                    }
+                captchaObj.onSuccess(function() {
+                    const result = captchaObj.getValidate();
+                    
+                    // 验证成功后提交到你的Java后端
+                    verifyWithBackend(result, userId, initData);
                 });
-                dataToCheck.sort();
                 
-                // 使用Web Crypto API验证
-                const encoder = new TextEncoder();
-                const secretKey = await crypto.subtle.importKey(
-                    'raw',
-                    encoder.encode('WebAppData'),
-                    { name: 'HMAC', hash: 'SHA-256' },
-                    false,
-                    ['verify']
-                );
-                
-                const isValid = await crypto.subtle.verify(
-                    'HMAC',
-                    secretKey,
-                    hexToBytes(hash),
-                    encoder.encode(dataToCheck.join('\n'))
-                );
-                
-                if (isValid) {
-                    const user = initData.get('user') ? JSON.parse(initData.get('user')) : null;
-                    document.getElementById('init-data-result').innerHTML = `
-                        <p style="color: green;">✅ 验证成功</p>
-                        <pre>${JSON.stringify({
-                            user: user,
-                            query_id: initData.get('query_id'),
-                            auth_date: new Date(initData.get('auth_date') * 1000)
-                        }, null, 2)}</pre>
-                    `;
+                captchaObj.onError(function(error) {
+                    showStatus('验证出错: ' + error.msg, 'error');
+                });
+            });
+        }
+        
+        // 提交验证结果到后端
+        function verifyWithBackend(geetestData, userId, initData) {
+            showStatus('正在验证...');
+            
+            fetch('https://your-java-backend.com/api/geetest/validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    geetestData: geetestData,
+                    userId: userId,
+                    telegramData: initData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('验证成功! 窗口即将关闭...', 'success');
+                    
+                    // 通知Telegram验证成功
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        tg.sendData(JSON.stringify({
+                            action: 'geetest_verified',
+                            userId: userId,
+                            time: new Date().toISOString()
+                        }));
+                    }
+                    
+                    // 3秒后关闭窗口
+                    setTimeout(() => {
+                        tg.close();
+                    }, 3000);
                 } else {
-                    document.getElementById('init-data-result').innerHTML = 
-                        '<p style="color: red;">❌ 签名验证失败</p>';
+                    showStatus('验证失败: ' + data.message, 'error');
                 }
-            } catch (e) {
-                console.error('验证错误:', e);
-                document.getElementById('init-data-result').innerHTML = `
-                    <p style="color: red;">❌ 验证过程中出错: ${e.message}</p>
-                `;
-            }
+            })
+            .catch(error => {
+                showStatus('验证请求失败: ' + error.message, 'error');
+            });
         }
         
-        function hexToBytes(hex) {
-            const bytes = new Uint8Array(hex.length / 2);
-            for (let i = 0; i < hex.length; i += 2) {
-                bytes[i/2] = parseInt(hex.substr(i, 2), 16);
-            }
-            return bytes;
+        // 显示状态信息
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status-message');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+            statusEl.classList.remove('hidden');
         }
         
-        // 初始化应用
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 显示URL参数
-            const urlParams = getUrlParams();
-            document.getElementById('url-params').innerHTML = 
-                `<pre>${JSON.stringify(urlParams, null, 2)}</pre>`;
-            
-            // 显示WebApp数据
-            displayWebAppData();
-            
-            // 验证初始化数据
-            await validateInitData();
-            
-            // 初始化Telegram WebApp
-            if (window.Telegram && window.Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-            }
-        });
+        // 页面加载后初始化
+        document.addEventListener('DOMContentLoaded', initGeetest);
     </script>
 </body>
 </html>
