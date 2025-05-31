@@ -16,7 +16,26 @@
 
   <script>
     const params = new URLSearchParams(window.Telegram.WebApp.initData);
-    document.getElementById('initData').innerHTML = params
+
+    // 获取各个参数
+    const queryId = params.get('query_id');
+    const userJsonString = params.get('user');
+    const first_name = params.get('first_name');
+    const last_name = params.get('last_name');
+    const username = params.get('username');
+    const language_code = params.get('language_code');
+
+    // 组合成最终JSON对象
+    const result = {
+    query_id: queryId,
+    user: userJsonString,
+    first_name: first_name,
+    last_name: last_name,
+    username: username,
+    language_code: language_code
+    };
+
+    document.getElementById('initData').innerHTML = result
     document.getElementById('h1').innerHTML = getOrderNo()
     // 从URL获取orderNo参数
     function getOrderNo() {
