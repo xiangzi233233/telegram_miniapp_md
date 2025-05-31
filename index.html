@@ -11,7 +11,7 @@
   <body>
     Hello Todo List
     <h1 id = 'h1'></h1>
-    <code id = 'initData'></code>
+    <pre><code id = 'initData'></code></pre>
   </body>
 
   <script>
@@ -35,7 +35,7 @@
     language_code: language_code
     };
 
-    document.getElementById('initData').innerHTML = result
+    document.getElementById('initData').innerHTML = JSON.stringify(result)
     document.getElementById('h1').innerHTML = getOrderNo()
     // 从URL获取orderNo参数
     function getOrderNo() {
