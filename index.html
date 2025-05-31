@@ -10,13 +10,19 @@
 
   <body>
     Hello Todo List
+    <h1 id = 'h1'></h1>
     <code id = 'initData'></code>
   </body>
 
   <script>
 
-    document.getElementById('initData').innerText = JSON.stringify(window.Telegram.WebApp.initData)
-
+    document.getElementById('initData').innerHTML = window.Telegram.WebApp.initData
+    document.getElementById('h1').innerHTML = getOrderNo()
+    // 从URL获取orderNo参数
+    function getOrderNo() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('no');
+    }
 
   </script>
 
