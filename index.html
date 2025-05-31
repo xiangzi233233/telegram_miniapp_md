@@ -1,160 +1,23 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="en">
+
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>极验验证</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://static.geetest.com/v4/gt4.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 16px;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            text-align: center;
-        }
-        #geetest-container {
-            margin: 20px 0;
-        }
-        .status {
-            margin: 20px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>安全验证</h1>
-        <p>请完成下方验证以继续</p>
-        
-        <div id="geetest-container"></div>
-        <div id="status-message" class="status hidden"></div>
-    </div>
+    <title>Todo List</title>
+  </head>
 
-    <script>
-        // 初始化Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        // 从URL获取参数
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id') || tg.initDataUnsafe.user?.id;
-        const initData = urlParams.get('tgWebAppData') || tg.initData;
-        
-        // 初始化极验验证码
-        function initGeetest() {
-            // 这里应该先请求你的Java后端获取极验配置
-            // 以下是模拟流程，实际需要对接你的后端API
-            fetch('https://your-java-backend.com/api/geetest/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    clientType: 'telegram_webapp'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                initGeetestWithConfig(data);
-            })
-            .catch(error => {
-                showStatus('获取验证配置失败: ' + error.message, 'error');
-            });
-        }
-        
-        // 使用配置初始化极验
-        function initGeetestWithConfig(config) {
-            initGeetest4({
-                captchaId: config.captchaId,
-                product: 'bind',
-                language: 'zh-cn',
-                riskType: config.riskType,
-                hideBar: ['close']
-            }, function(captchaObj) {
-                captchaObj.appendTo('#geetest-container');
-                
-                captchaObj.onSuccess(function() {
-                    const result = captchaObj.getValidate();
-                    
-                    // 验证成功后提交到你的Java后端
-                    verifyWithBackend(result, userId, initData);
-                });
-                
-                captchaObj.onError(function(error) {
-                    showStatus('验证出错: ' + error.msg, 'error');
-                });
-            });
-        }
-        
-        // 提交验证结果到后端
-        function verifyWithBackend(geetestData, userId, initData) {
-            showStatus('正在验证...');
-            
-            fetch('https://your-java-backend.com/api/geetest/validate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    geetestData: geetestData,
-                    userId: userId,
-                    telegramData: initData
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showStatus('验证成功! 窗口即将关闭...', 'success');
-                    
-                    // 通知Telegram验证成功
-                    if (window.Telegram && window.Telegram.WebApp) {
-                        tg.sendData(JSON.stringify({
-                            action: 'geetest_verified',
-                            userId: userId,
-                            time: new Date().toISOString()
-                        }));
-                    }
-                    
-                    // 3秒后关闭窗口
-                    setTimeout(() => {
-                        tg.close();
-                    }, 3000);
-                } else {
-                    showStatus('验证失败: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showStatus('验证请求失败: ' + error.message, 'error');
-            });
-        }
-        
-        // 显示状态信息
-        function showStatus(message, type = 'info') {
-            const statusEl = document.getElementById('status-message');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + type;
-            statusEl.classList.remove('hidden');
-        }
-        
-        // 页面加载后初始化
-        document.addEventListener('DOMContentLoaded', initGeetest);
-    </script>
-</body>
+  <body>
+    Hello Todo List
+    <code id = 'initData'></code>
+  </body>
+
+  <script>
+
+    document.getElementById('initData').innerText = JSON.stringify(window.Telegram.WebApp.initData)
+
+
+  </script>
+
 </html>
