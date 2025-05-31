@@ -369,6 +369,8 @@
 </section>
 
 <section>
+    <pre><code id="webview_data1"></code></pre>
+    <pre><code id="webview_data2"></code></pre>
     <pre><code id="webview_data"></code></pre>
     <div class="hint">
         Data passed to webview.
@@ -409,6 +411,8 @@
         const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
         
         console.log('Telegram用户数据:', tgUser);
+        document.getElementById('webview_data1').innerHTML = tgData
+        document.getElementById('webview_data2').innerHTML = tgUser
     }
 
 
