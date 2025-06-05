@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Data Sender</title>
+    <title>Telegram User Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -17,89 +17,149 @@
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .data-item {
-            margin: 10px 0;
+        .data-row {
+            margin: 12px 0;
             padding: 10px;
             background: #f9f9f9;
             border-radius: 5px;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 80px;
         }
         button {
             background: #0088cc;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 12px 20px;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 16px;
             margin-top: 15px;
+            width: 100%;
+        }
+        button:hover {
+            background: #0077b3;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
         }
         #status {
             margin-top: 15px;
             padding: 10px;
-            display: none;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .success {
+            background: #e6ffed;
+            color: #22863a;
+        }
+        .error {
+            background: #ffebee;
+            color: #b71c1c;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Telegram User Data</h2>
+        <h2>Your Telegram Information</h2>
         
-        <div class="data-item">
-            <strong>User ID:</strong> <span id="user-id">Loading...</span>
+        <div class="data-row">
+            <span class="label">User ID:</span>
+            <span id="user-id">-</span>
         </div>
         
-        <div class="data-item">
-            <strong>Name:</strong> <span id="user-name">Loading...</span>
+        <div class="data-row">
+            <span class="label">Name:</span>
+            <span id="user-name">-</span>
         </div>
         
-        <div class="data-item">
-            <strong>Username:</strong> <span id="user-username">Loading...</span>
+        <div class="data-row">
+            <span class="label">Username:</span>
+            <span id="user-username">-</span>
         </div>
         
-        <div class="data-item">
-            <strong>Language:</strong> <span id="user-language">Loading...</span>
+        <div class="data-row">
+            <span class="label">Language:</span>
+            <span id="user-language">-</span>
         </div>
         
-        <button id="send-btn">Send Data to Bot</button>
+        <button id="send-btn" disabled>Send Data to Bot</button>
         
         <div id="status"></div>
     </div>
 
     <script>
+        // 初始化Telegram WebApp
         const tg = window.Telegram.WebApp;
-        tg.expand();
         
-        // 显示用户数据
-        const user = tg.initDataUnsafe.user || {};
-        document.getElementById('user-id').textContent = user.id || 'N/A';
-        document.getElementById('user-name').textContent = 
-            [user.first_name, user.last_name].filter(Boolean).join(' ') || 'N/A';
-        document.getElementById('user-username').textContent = user.username ? `@${user.username}` : 'N/A';
-        document.getElementById('user-language').textContent = tg.initDataUnsafe.user?.language_code || 'N/A';
-        
-        // 发送数据
-        document.getElementById('send-btn').addEventListener('click', () => {
-            const data = {
-                userId: user.id,
-                firstName: user.first_name,
-                lastName: user.last_name,
-                username: user.username,
-                language: tg.initDataUnsafe.user?.language_code,
-                authDate: tg.initDataUnsafe.auth_date,
-                queryId: tg.initDataUnsafe.query_id,
-                action: 'send_data_from_mini_app'
-            };
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 展开WebApp到全屏
+            tg.expand();
             
-            tg.sendData(JSON.stringify(data));
+            // 获取用户数据
+            const user = tg.initDataUnsafe.user;
+            const initData = tg.initDataUnsafe;
             
-            // 显示状态并关闭
-            const status = document.getElementById('status');
-            status.textContent = 'Data sent successfully! Closing in 2 seconds...';
-            status.style.display = 'block';
-            status.style.color = 'green';
+            // 显示用户信息（处理所有可能的null/undefined情况）
+            document.getElementById('user-id').textContent = user.id || 'Not available';
             
-            setTimeout(() => tg.close(), 2000);
+            const fullName = [user?.first_name, user?.last_name]
+                .filter(name => name && name.trim() !== '')
+                .join(' ') || 'Not available';
+            document.getElementById('user-name').textContent = fullName;
+            
+            document.getElementById('user-username').textContent = 
+                user?.username ? `@${user.username}` : 'Not available';
+            
+            document.getElementById('user-language').textContent = 
+                initData.user?.language_code || 'Not detected';
+            
+            // 只有成功获取用户数据才启用发送按钮
+            if (user?.id) {
+                document.getElementById('send-btn').disabled = false;
+            }
+            
+            // 添加发送按钮事件监听
+            document.getElementById('send-btn').addEventListener('click', function() {
+                const statusElement = document.getElementById('status');
+                
+                // 准备要发送的数据
+                const dataToSend = {
+                    userId: user.id,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    username: user.username,
+                    languageCode: initData.user?.language_code,
+                    authDate: initData.auth_date,
+                    queryId: initData.query_id,
+                    platform: tg.platform,
+                    action: 'user_data_submission',
+                    timestamp: Math.floor(Date.now() / 1000)
+                };
+                
+                try {
+                    // 发送数据
+                    tg.sendData(JSON.stringify(dataToSend));
+                    
+                    // 显示成功状态
+                    statusElement.textContent = '✓ Data sent successfully! Closing in 2 seconds...';
+                    statusElement.className = 'success';
+                    
+                    // 2秒后关闭Mini App
+                    setTimeout(() => tg.close(), 2000);
+                } catch (error) {
+                    // 显示错误状态
+                    statusElement.textContent = `✗ Error: ${error.message}`;
+                    statusElement.className = 'error';
+                }
+            });
         });
     </script>
 </body>
