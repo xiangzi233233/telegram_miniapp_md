@@ -1,166 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram User Data</title>
+    <title>Telegram Bot Interface</title>
+    <!-- 引入 Telegram WebApp JS SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
         }
         .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .data-row {
-            margin: 12px 0;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 5px;
-        }
-        .label {
-            font-weight: bold;
-            color: #555;
-            display: inline-block;
-            width: 80px;
-        }
-        button {
-            background: #0088cc;
-            color: white;
+        .btn {
+            background-color: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            padding: 10px 20px;
             border: none;
-            padding: 12px 20px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            margin-top: 15px;
-            width: 100%;
         }
-        button:hover {
-            background: #0077b3;
-        }
-        button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
+        .btn:hover {
+            opacity: 0.9;
         }
         #status {
-            margin-top: 15px;
+            margin-top: 20px;
             padding: 10px;
             border-radius: 5px;
-            text-align: center;
         }
         .success {
-            background: #e6ffed;
-            color: #22863a;
+            background-color: #dff0d8;
+            color: #3c763d;
         }
         .error {
-            background: #ffebee;
-            color: #b71c1c;
+            background-color: #f2dede;
+            color: #a94442;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Your Telegram Information</h2>
-        
-        <div class="data-row">
-            <span class="label">User ID:</span>
-            <span id="user-id">-</span>
-        </div>
-        
-        <div class="data-row">
-            <span class="label">Name:</span>
-            <span id="user-name">-</span>
-        </div>
-        
-        <div class="data-row">
-            <span class="label">Username:</span>
-            <span id="user-username">-</span>
-        </div>
-        
-        <div class="data-row">
-            <span class="label">Language:</span>
-            <span id="user-language">-</span>
-        </div>
-        
-        <button id="send-btn" disabled>Send Data to Bot</button>
-        
+        <h1>Telegram Bot Interface</h1>
+        <button id="sendInfoBtn" class="btn">点击：发送用户信息</button>
         <div id="status"></div>
     </div>
 
     <script>
-        // 初始化Telegram WebApp
+        // 确保 Telegram WebApp 已准备就绪
+        window.Telegram.WebApp.ready();
+
+        // 获取 Telegram WebApp 实例
         const tg = window.Telegram.WebApp;
-        
-        // 页面加载完成后执行
-        document.addEventListener('DOMContentLoaded', function() {
-            // 展开WebApp到全屏
-            tg.expand();
-            
-            // 获取用户数据
-            const user = tg.initDataUnsafe.user;
-            const initData = tg.initDataUnsafe;
-            
-            // 显示用户信息（处理所有可能的null/undefined情况）
-            document.getElementById('user-id').textContent = user.id || 'Not available';
-            
-            const fullName = [user?.first_name, user?.last_name]
-                .filter(name => name && name.trim() !== '')
-                .join(' ') || 'Not available';
-            document.getElementById('user-name').textContent = fullName;
-            
-            document.getElementById('user-username').textContent = 
-                user?.username ? `@${user.username}` : 'Not available';
-            
-            document.getElementById('user-language').textContent = 
-                initData.user?.language_code || 'Not detected';
-            
-            // 只有成功获取用户数据才启用发送按钮
-            if (user?.id) {
-                document.getElementById('send-btn').disabled = false;
-            }
-            
-            // 添加发送按钮事件监听
-            document.getElementById('send-btn').addEventListener('click', function() {
-                const statusElement = document.getElementById('status');
-                
-                // 准备要发送的数据
-                const dataToSend = {
-                    userId: user.id,
-                    firstName: user.first_name,
-                    lastName: user.last_name,
-                    username: user.username,
-                    languageCode: initData.user?.language_code,
-                    authDate: initData.auth_date,
-                    queryId: initData.query_id,
-                    platform: tg.platform,
-                    action: 'user_data_submission',
-                    timestamp: Math.floor(Date.now() / 1000)
-                };
-                
-                try {
-                    // 发送数据
-                    tg.sendData(JSON.stringify(dataToSend));
-                    
-                    // 显示成功状态
-                    statusElement.textContent = '✓ Data sent successfully! Closing in 2 seconds...';
-                    statusElement.className = 'success';
-                    
-                    // 2秒后关闭Mini App
-                    setTimeout(() => tg.close(), 2000);
-                } catch (error) {
-                    // 显示错误状态
-                    statusElement.textContent = `✗ Error: ${error.message}`;
-                    statusElement.className = 'error';
+
+        // 设置主题
+        document.documentElement.style.setProperty('--tg-theme-bg-color', tg.backgroundColor);
+        document.documentElement.style.setProperty('--tg-theme-text-color', tg.textColor);
+        document.documentElement.style.setProperty('--tg-theme-button-color', tg.buttonColor);
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.buttonTextColor);
+
+        document.getElementById('sendInfoBtn').addEventListener('click', async function() {
+            const statusDiv = document.getElementById('status');
+
+            try {
+                // 检查是否在 Telegram WebApp 环境中
+                if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+                    throw new Error('无法获取 Telegram 用户信息');
                 }
-            });
+
+                const user = tg.initDataUnsafe.user;
+
+                const response = await fetch('http://43.198.72.195:8001/info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // 添加 Telegram 初始化数据作为验证
+                        'Telegram-Data': tg.initData
+                    },
+                    body: JSON.stringify({
+                        userId: user.id,
+                        username: user.username,
+                        firstName: user.first_name,
+                        lastName: user.last_name,
+                        languageCode: user.language_code
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = '信息发送成功！';
+
+                    // 显示 Telegram 弹窗提示
+                    tg.showPopup({
+                        title: '成功',
+                        message: '用户信息已成功发送',
+                        buttons: [{text: '确定'}]
+                    });
+                } else {
+                    throw new Error(data.message || '请求失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.className = 'error';
+                statusDiv.textContent = '发送失败：' + error.message;
+
+                // 显示错误提示
+                tg.showPopup({
+                    title: '错误',
+                    message: error.message,
+                    buttons: [{text: '确定'}]
+                });
+            }
         });
+
+        // 设置 Telegram WebApp 返回按钮
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            tg.close();
+        });
+
+        // 展开 WebApp 到全屏
+        tg.expand();
     </script>
 </body>
 </html>
